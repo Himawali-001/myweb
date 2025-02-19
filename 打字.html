@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>专业打字练习器</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --bg-color: #f8f9fa;
+            --text-color: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .content-wrapper {
+            width: calc(100% - 50px);
+            margin: 0 auto;
+        }
+
+        .file-upload {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+
+        .custom-upload {
+            background: linear-gradient(135deg, var(--primary-color), #2980b9);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #practice-text, #input-area {
+            width: 100%;
+            margin: 25px 0;
+            padding: 25px;
+            font-size: 1.4em;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            background: white;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        #practice-text {
+            min-height: 120px;
+            white-space: pre-wrap;
+        }
+
+        #input-area {
+            resize: none;
+            min-height: 60px;
+            overflow-y: hidden;
+            transition: height 0.2s;
+        }
+
+        .char {
+            position: relative;
+            display: inline-block;
+            line-height: 1.8;
+        }
+
+        .current-char::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: -8px;
+            width: 100%;
+            height: 3px;
+            background: var(--primary-color);
+            animation: blink 1.2s infinite;
+            border-radius: 2px;
+        }
+
+        .correct { color: var(--success-color); }
+        .wrong { color: var(--error-color); text-decoration: underline; }
+
+        @keyframes blink {
+            50% { opacity: 0.4; }
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            flex: 1;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        #progress-bar {
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.4s ease;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--primary-color), #2980b9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+            font-size: 1em;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .placeholder {
+            color: #bdc3c7;
+            font-style: italic;
+            text-align: center;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 专业打字练习器</h1>
+            <p>上传TXT文档开始练习</p>
+        </div>
+
+        <div class="file-upload">
+            <label class="custom-upload">
+                📁 上传TXT文档
+                <input type="file" id="file-input" accept=".txt" multiple hidden>
+            </label>
+            <div id="file-list"></div>
+        </div>
+
+        <div class="content-wrapper">
+            <div class="progress-container">
+                <div id="progress-bar"></div>
+            </div>
+
+            <div id="practice-text" class="placeholder">等待输入练习内容...</div>
+
+            <textarea 
+                id="input-area" 
+                autocomplete="off" 
+                placeholder="在此输入内容..."
+                spellcheck="false"
+            ></textarea>
+
+            <div class="stats-row">
+                <div class="stat-item">
+                    <h3>全程速度</h3>
+                    <p id="speed">0 CPM</p>
+                </div>
+                <div class="stat-item">
+                    <h3>输入准确率</h3>
+                    <p id="accuracy">100%</p>
+                </div>
+                <div class="stat-item">
+                    <h3>练习进度</h3>
+                    <p id="progress">0/0</p>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button onclick="nextExercise()">⏭️ 下一段</button>
+                <button onclick="resetAll()">🔄 重置全部</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 状态管理
+        let practiceTexts = [];
+        let currentTextIndex = 0;
+        let currentText = '';
+        let currentIndex = 0;
+        let inputHistory = [];
+        
+        // 全程统计
+        let totalCharacters = 0;
+        let totalStartTime = null;
+        let currentStartTime = null;
+
+        // 文件处理（已修复）
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length === 0) return;
+
+            practiceTexts = [];
+            currentTextIndex = 0;
+            totalCharacters = 0;
+            totalStartTime = Date.now();
+            document.getElementById('file-list').innerHTML = '';
+
+            Array.from(files).forEach(file => {
+                if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        processText(e.target.result, file.name);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+        });
+
+        function processText(content, filename) {
+            try {
+                const newTexts = content.split(/\r?\n/)
+                    .filter(line => line.length > 0); // 修复过滤逻辑
+
+                if (newTexts.length === 0) {
+                    showMessage(`${filename} 没有有效内容`, 'warning');
+                    return;
+                }
+
+                practiceTexts = [...practiceTexts, ...newTexts];
+                showMessage(`✅ ${filename} (${newTexts.length}条)`, 'success');
+                
+                // 确保加载第一个练习
+                if (practiceTexts.length > 0 && !currentText) {
+                    currentTextIndex = 0;
+                    loadCurrentExercise();
+                }
+            } catch (error) {
+                showMessage(`解析失败: ${filename}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // 界面交互
+        function autoResize() {
+            const textarea = document.getElementById('input-area');
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        function loadCurrentExercise() {
+            if (practiceTexts.length === 0) return;
+
+            currentText = practiceTexts[currentTextIndex];
+            currentIndex = 0;
+            inputHistory = [];
+            currentStartTime = Date.now();
+            document.getElementById('input-area').value = '';
+            renderText();
+            updateDisplay();
+            autoResize();
+            document.getElementById('input-area').focus();
+        }
+
+        function nextExercise() {
+            if (practiceTexts.length === 0) return;
+            
+            currentTextIndex = (currentTextIndex + 1) % practiceTexts.length;
+            loadCurrentExercise();
+        }
+
+        // 输入处理
+        document.getElementById('input-area').addEventListener('input', function(e) {
+            autoResize();
+            if (!currentText) return;
+
+            const inputVal = e.target.value;
+            const newIndex = Math.min(inputVal.length, currentText.length);
+            
+            // 更新全程统计
+            totalCharacters += Math.max(0, newIndex - currentIndex);
+            
+            currentIndex = newIndex;
+            inputHistory = Array.from({length: currentIndex}, (_, i) => 
+                inputVal[i] === currentText[i]
+            );
+
+            if (currentIndex === currentText.length && inputHistory.every(v => v)) {
+                setTimeout(nextExercise, 500);
+            }
+
+            updateDisplay();
+            updateProgressBar();
+        });
+
+        // 数据计算（已修复）
+        function calculateTotalSpeed() {
+            if (!totalStartTime || totalCharacters === 0) return 0;
+            const totalMinutes = (Date.now() - totalStartTime) / 60000;
+            return Math.round(totalCharacters / totalMinutes);
+        }
+
+        function calculateAccuracy() {
+            return currentIndex > 0 
+                ? Math.round((inputHistory.filter(Boolean).length / currentIndex) * 100)
+                : 100;
+        }
+
+        // 界面更新（已修复）
+        function updateDisplay() {
+            const chars = document.getElementsByClassName('char');
+            Array.from(chars).forEach((char, index) => {
+                char.className = 'char';
+                if (index === currentIndex) char.classList.add('current-char');
+                if (index < currentIndex) {
+                    char.classList.add(inputHistory[index] ? 'correct' : 'wrong');
+                }
+            });
+
+            document.getElementById('speed').textContent = `${calculateTotalSpeed()} CPM`;
+            document.getElementById('accuracy').textContent = `${calculateAccuracy()}%`;
+            document.getElementById('progress').textContent = 
+                `${currentTextIndex + 1}/${practiceTexts.length}`;
+        }
+
+        function updateProgressBar() {
+            const progress = practiceTexts.length > 0 
+                ? (currentTextIndex + 1) / practiceTexts.length 
+                : 0;
+            document.getElementById('progress-bar').style.width = 
+                `${Math.round(progress * 100)}%`;
+        }
+
+        // 文本渲染（已修复）
+        function renderText() {
+            const container = document.getElementById('practice-text');
+            container.classList.remove('placeholder');
+            container.innerHTML = currentText
+                .split('')
+                .map((char, i) => 
+                    `<span class="char" data-index="${i}">${char === ' ' ? ' ' : char}</span>`
+                )
+                .join('');
+        }
+
+        function resetAll() {
+            practiceTexts = [];
+            currentTextIndex = 0;
+            currentText = '';
+            totalCharacters = 0;
+            totalStartTime = null;
+            document.getElementById('file-list').innerHTML = '';
+            document.getElementById('practice-text').innerHTML = 
+                '<div class="placeholder">已重置，请重新上传文件</div>';
+            document.getElementById('input-area').value = '';
+            document.getElementById('progress-bar').style.width = '0%';
+            updateDisplay();
+            autoResize();
+        }
+
+        function showMessage(msg, type) {
+            const colors = {
+                success: '#2ecc71',
+                error: '#e74c3c',
+                info: '#3498db'
+            };
+            const list = document.getElementById('file-list');
+            list.innerHTML += `<div style="color: ${colors[type]}; margin: 5px 0;">${msg}</div>`;
+        }
+
+        // 初始化
+        document.addEventListener('dragover', e => e.preventDefault());
+        document.addEventListener('drop', e => {
+            e.preventDefault();
+            document.getElementById('file-input').files = e.dataTransfer.files;
+            document.getElementById('file-input').dispatchEvent(new Event('change'));
+        });
+
+        // 确保初始对齐
+        window.addEventListener('load', () => {
+            const practiceText = document.getElementById('practice-text');
+            const inputArea = document.getElementById('input-area');
+            inputArea.style.width = practiceText.offsetWidth + 'px';
+        });
+        window.addEventListener('resize', () => {
+            const practiceText = document.getElementById('practice-text');
+            const inputArea = document.getElementById('input-area');
+            inputArea.style.width = practiceText.offsetWidth + 'px';
+        });
+    </script>
+</body>
+</html>
